@@ -2,7 +2,7 @@ import React from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import style from "./Input.module.scss";
 
-export default function Input({ label, name, required = false, step = 1 }) {
+export default function Input({ label, name, required = false, step = 1, min = 1 }) {
   const { register, control } = useFormContext();
 
   return (
@@ -19,6 +19,7 @@ export default function Input({ label, name, required = false, step = 1 }) {
             value={value}
             onChange={onChange}
             step={step}
+            min={min}
           />
         )}
       />
