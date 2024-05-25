@@ -1,16 +1,19 @@
-import React, { Suspense } from "react";
-import { Canvas, useLoader } from "@react-three/fiber";
+import React, { Suspense, useState } from "react";
+import * as THREE from "three";
+import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls, Box } from "@react-three/drei";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { TextureLoader } from "three/src/loaders/TextureLoader";
+import { useGesture } from "@use-gesture/react";
 import Input from "./components/Input/Input";
 import "./style.scss";
 
 const Stair = ({ position, storyHeight, steps, stairWidth, stairLength }) => {
   const stepHeight = storyHeight / steps;
   const stepDepth = stairLength / steps;
-  const good = stepHeight * 2 + stepDepth > 0.6 && stepHeight * 2 + stepDepth < 0.65;
+  const good = stepHeight * 2 + stepDepth >= 0.6 && stepHeight * 2 + stepDepth <= 0.65;
   const colorMap = useLoader(TextureLoader, good ? "plank.jpg" : "error.jpg");
+
   const stairSteps = [];
 
   for (let i = 1; i < steps + 1; i++) {
@@ -30,7 +33,64 @@ const Stair = ({ position, storyHeight, steps, stairWidth, stairLength }) => {
   );
 };
 
+const Puller = ({ setLength, setOrbitEnabled, stairLength }) => {
+  const init = 5.4;
+  const pullerX = 1;
+  const halfArrow = 0.2;
+  const [drag, setDrag] = useState([-init / 2 - pullerX + 0.5, 0, 0.005]);
+  const [opacity, setOpacity] = useState(0.2);
+
+  const { size, viewport } = useThree();
+  const aspect = size.width / viewport.width;
+
+  const bind = useGesture({
+    onDrag: ({ offset: [x] }) => {
+      const [, y, z] = drag;
+      setDrag([x / aspect + (stairLength - pullerX) / 2 - init, -y / aspect, z]);
+      setLength(-x / aspect + init);
+    },
+  });
+
+  const arrow = new THREE.Shape();
+  arrow.moveTo(-halfArrow, 0.2);
+  arrow.lineTo(halfArrow, 0.2);
+  arrow.lineTo(halfArrow, 0.4);
+  arrow.lineTo(halfArrow + 0.4, 0);
+  arrow.lineTo(halfArrow, -0.4);
+  arrow.lineTo(halfArrow, -0.2);
+  arrow.lineTo(-halfArrow, -0.2);
+  arrow.lineTo(-halfArrow, -0.4);
+  arrow.lineTo(-halfArrow - 0.4, -0);
+  arrow.lineTo(-halfArrow, 0.4);
+
+  const extrudeSettings = {
+    depth: 0.02,
+    bevelEnabled: false,
+  };
+
+  return (
+    <mesh
+      scale={0.5}
+      {...bind()}
+      position={drag}
+      onPointerOver={() => {
+        setOpacity(0.8);
+        setOrbitEnabled(false);
+      }}
+      onPointerOut={() => {
+        setOpacity(0.2);
+        setOrbitEnabled(true);
+      }}
+    >
+      <extrudeGeometry args={[arrow, extrudeSettings]} />
+      <meshStandardMaterial color={"blue"} opacity={opacity} transparent />
+    </mesh>
+  );
+};
+
 function App() {
+  const [stairLength, setStairLength] = useState(5.4);
+  const [orbitEnabled, setOrbitEnabled] = useState(true);
   const form = useForm({
     mode: "onBlur",
     defaultValues: {
@@ -45,7 +105,7 @@ function App() {
   const stepsNumber = Number(useWatch({ control, name: "stepsNumber" }));
   const storyHeight = Number(useWatch({ control, name: "storyHeight" }));
   const stairWidth = Number(useWatch({ control, name: "stairWidth" }));
-  const stairLength = Number(useWatch({ control, name: "stairLength" }));
+  // const stairLength = Number(useWatch({ control, name: "stairLength" }));
 
   return (
     <>
@@ -74,7 +134,7 @@ function App() {
           </div>
 
           <div style={{ display: "flex", gap: "8px" }}>
-            <Input required name={"stairLength"} label={"Длина лестницы:"} step={0.1} />
+            {/* <Input required name={"stairLength"} label={"Длина лестницы:"} step={0.1} /> */}
             <Input required name={"stepsNumber"} label={"Число подъемов:"} min={3} />
             <Input required name={"storyHeight"} label={"Высота этажа:"} step={0.1} />
             <Input required name={"stairWidth"} label={"Ширина лестницы:"} step={0.1} min={0.6} />
@@ -91,10 +151,11 @@ function App() {
             storyHeight={storyHeight}
             stairWidth={stairWidth}
             stairLength={stairLength}
+            setOrbitEnabled={(bool) => setOrbitEnabled(bool)}
           />
           <Box
             // first floor
-            args={[stairLength + 1.5, 5, 0.5]}
+            args={[stairLength + 2, 5, 0.5]}
             position={[0, stairWidth / 2 + 2.5 - 5 + 0.5, -0.25]}
             receiveShadow
           >
@@ -118,7 +179,13 @@ function App() {
           >
             <meshStandardMaterial color={"gray"} />
           </Box>
-          <OrbitControls />
+          <Puller
+            position={[-stairLength / 2, 0, 0.1]}
+            setOrbitEnabled={setOrbitEnabled}
+            stairLength={stairLength}
+            setLength={(length) => setStairLength(length)}
+          />
+          <OrbitControls enabled={orbitEnabled} />
         </Canvas>
       </div>
     </>
