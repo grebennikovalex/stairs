@@ -8,6 +8,8 @@ import PullerX from "./components/Pullers/PullerX";
 import PullerY from "./components/Pullers/PullerY";
 import PullerZ from "./components/Pullers/PullerZ";
 import "./style.scss";
+import NeuroCat from "./models/NeuroCat";
+import MoneyCat from "./models/MoneyCat";
 
 const Stair = ({ position, storyHeight, steps, stairWidth }) => {
   const form = useFormContext();
@@ -97,6 +99,8 @@ export default function StairMaiker() {
           <PullerX setOrbitEnabled={setOrbitEnabled} name="stairLength" initValue={5.4} />
           <PullerY setOrbitEnabled={setOrbitEnabled} name="stairWidth" initValue={0.9} />
           <PullerZ setOrbitEnabled={setOrbitEnabled} name="storyHeight" initValue={2.7} />
+          <NeuroCat position={[stairLength / 2 + 0.5, 0, storyHeight]} />
+          {/* <MoneyCat position={[stairLength / 2 + 0.5, -1, storyHeight]} /> */}
           <OrbitControls enabled={orbitEnabled} />
         </Canvas>
       </div>
